@@ -43,11 +43,12 @@ function _init()
 			end
 			if(btn(0)) then
 				this.sprite=PS_LEFT
-				this.x-=2
-			end
-			if(btn(1)) then
+				this.vx=-2
+			elseif(btn(1)) then
 				this.sprite=PS_RIGHT
-				this.x+=2
+				this.vx=2
+			else
+				this.vx=0
 			end
 			if(btnp(4) and this:on_ground()) then
 				this.vy=-JUMP_ENERGY
@@ -57,6 +58,7 @@ function _init()
 
 		update=function(this)
 			this:controls_update()
+			this.x+=this.vx
 			this.y+=this.vy
 			this.vy=this.vy+this.gravity
 			
@@ -85,7 +87,7 @@ function _init()
 			if (this.x <= 0) then
 				this.vx = this.vx*-1
 			end
-			
+
 			if (this:on_ground()) then
 				this.vy=0
 			end
