@@ -29,8 +29,40 @@ function _init()
 		jump_energy=0,
 		vy=0,
 		gravity=0.1,
+
 		on_ground=function(this)
 			return this.y >= 56
+		end,
+
+		controls_update=function(this)
+			if(btn(2)) then
+				this.sprite=PS_DOWN
+			end
+			if(btn(3)) then
+				this.sprite=PS_UP
+			end
+			if(btn(0)) then
+				this.sprite=PS_LEFT
+				this.x-=2
+			end
+			if(btn(1)) then
+				this.sprite=PS_RIGHT
+				this.x+=2
+			end
+			if(btnp(4) and this:on_ground()) then
+				this.vy=-JUMP_ENERGY
+				sfx(SND_JUMP)
+			end
+		end,
+
+		update=function(this)
+			this:controls_update()
+			this.y+=this.vy
+			this.vy=this.vy+this.gravity
+			
+			if (this:on_ground()) then
+				this.vy=0
+			end
 		end
 	}
 
@@ -45,54 +77,30 @@ function _init()
 		gravity=0.2,
 		on_ground=function(this)
 			return this.y >= 56
+		end,
+		update=function(this)
+			if (this.x+this.width/2 >= 128) then
+				this.vx = this.vx*-1
+			end
+			if (this.x <= 0) then
+				this.vx = this.vx*-1
+			end
+			
+			if (this:on_ground()) then
+				this.vy=0
+			end
+			this.x+=this.vx
+			this.y+=this.vy
+			this.vy=this.vy+this.gravity
+			this.sprite_flip=this.vx>=0
 		end
 	}
 end
 
 
 function _update()
-	-- player
-	if(btn(2)) then
-		player.sprite=PS_DOWN
-	end
-	if(btn(3)) then
-		 player.sprite=PS_UP
-	end
-	if(btn(0)) then
-		player.sprite=PS_LEFT
-		player.x-=2
-	end
-	if(btn(1)) then
-		player.sprite=PS_RIGHT
-		player.x+=2
-	end
-	if(btnp(4) and player:on_ground()) then
-		player.vy=-JUMP_ENERGY
-		sfx(SND_JUMP)
-	end
-	
-	player.y+=player.vy
-	player.vy=player.vy+player.gravity
-	
-	if (player:on_ground()) then
-		player.vy=0
-	end
-
-	-- enemy
-	if (enemy.x+enemy.width/2 >= 128) then
-		enemy.vx = enemy.vx*-1
-	end
-	if (enemy.x <= 0) then
-		enemy.vx = enemy.vx*-1
-	end
-	
-	if (enemy:on_ground()) then
-		enemy.vy=0
-	end
-	enemy.x+=enemy.vx
-	enemy.y+=enemy.vy
-	enemy.vy=enemy.vy+enemy.gravity
-	enemy.sprite_flip=enemy.vx>=0
+	player:update()
+	enemy:update()
 end
 
 function _draw()
