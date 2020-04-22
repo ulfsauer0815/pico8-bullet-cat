@@ -71,6 +71,10 @@ function _init()
 			if (this:on_ground()) then
 				this.vy=0
 			end
+		end,
+
+		draw=function(this)
+			spr(this.sprite,this.x,this.y)
 		end
 	}
 
@@ -83,9 +87,11 @@ function _init()
 		vx=2,
 		vy=0,
 		gravity=0.2,
+
 		on_ground=function(this)
 			return this.y >= 56
 		end,
+		
 		update=function(this)
 			if (this.x+this.width/2 >= 128) then
 				this.vx = this.vx*-1
@@ -101,6 +107,10 @@ function _init()
 			this.y+=this.vy
 			this.vy=this.vy+this.gravity
 			this.sprite_flip=this.vx>=0
+		end,
+
+		draw=function(this)
+			spr(this.sprite,this.x,this.y,1,1,this.sprite_flip)
 		end
 	}
 end
@@ -115,10 +125,9 @@ function _draw()
 	cls()
 	
 	map(0,0,0,0,16,16)
-	-- player
-	spr(player.sprite,player.x,player.y)
-	-- enemy
-	spr(enemy.sprite,enemy.x,enemy.y,1,1,enemy.sprite_flip)
+	
+	player:draw()
+	enemy:draw()
 	
 	-- debug
 	if (debug) then
