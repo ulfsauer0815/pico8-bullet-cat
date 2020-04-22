@@ -27,7 +27,9 @@ function _init()
 		y=50,
 		sprite=PS_UP,
 		jump_energy=0,
+		move_energy=0.4,
 		vy=0,
+		vx=0,
 		gravity=0.1,
 
 		on_ground=function(this)
@@ -43,12 +45,16 @@ function _init()
 			end
 			if(btn(0)) then
 				this.sprite=PS_LEFT
-				this.vx=-2
+				this.vx=max(-2, this.vx-this.move_energy)
 			elseif(btn(1)) then
 				this.sprite=PS_RIGHT
-				this.vx=2
+				this.vx=min(2, this.vx+this.move_energy)
 			else
-				this.vx=0
+				if (this.vx <= this.move_energy and this.vx >= -this.move_energy) then
+					this.vx=0
+				else
+					this.vx=this.vx-sgn(this.vx)*this.move_energy
+				end
 			end
 			if(btnp(4) and this:on_ground()) then
 				this.vy=-JUMP_ENERGY
@@ -117,7 +123,7 @@ function _draw()
 	-- debug
 	if (debug) then
 		print(outd)
-		print(enemy.sprite_flip,6)
+		print(player.vx,6)
 	end
 end
 
