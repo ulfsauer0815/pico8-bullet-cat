@@ -18,31 +18,33 @@ local JUMP_ENERGY=1.5
 
 local player
 local enemy
+local objects
 
 
 function _init()
 	player=create_player(64,50)
 	enemy=create_enemy(10,49)
+	objects={player, enemy}
 end
 
 function _update()
-	player:update()
-	enemy:update()
+	foreach(objects, function(o) o:update() end)
 end
+
 
 function _draw()
 	cls()
 	
 	map(0,0,0,0,16,16)
 	
-	player:draw()
-	enemy:draw()
+	foreach(objects, function(o) o:draw() end)
 	
 	-- debug
 	if (debug) then
 		print(player.vx)
 	end
 end
+
 
 function create_player(x,y)
 	return {
@@ -101,6 +103,7 @@ function create_player(x,y)
 		end
 	}
 end
+
 
 function create_enemy(x,y)
 	return {
