@@ -21,9 +21,33 @@ local enemy
 
 
 function _init()
-	player={
-		x=64,
-		y=50,
+	player=create_player(64,50)
+	enemy=create_enemy(10,49)
+end
+
+function _update()
+	player:update()
+	enemy:update()
+end
+
+function _draw()
+	cls()
+	
+	map(0,0,0,0,16,16)
+	
+	player:draw()
+	enemy:draw()
+	
+	-- debug
+	if (debug) then
+		print(player.vx)
+	end
+end
+
+function create_player(x,y)
+	return {
+		x=x,
+		y=y,
 		sprite=PS_UP,
 		jump_energy=0,
 		move_energy=0.4,
@@ -76,10 +100,12 @@ function _init()
 			spr(this.sprite,this.x,this.y)
 		end
 	}
+end
 
-	enemy={
-		x=10,
-		y=49,
+function create_enemy(x,y)
+	return {
+		x=x,
+		y=y,
 		width=16,
 		sprite=32,
 		sprite_flip=true,
@@ -112,26 +138,6 @@ function _init()
 			spr(this.sprite,this.x,this.y,1,1,this.sprite_flip)
 		end
 	}
-end
-
-
-function _update()
-	player:update()
-	enemy:update()
-end
-
-function _draw()
-	cls()
-	
-	map(0,0,0,0,16,16)
-	
-	player:draw()
-	enemy:draw()
-	
-	-- debug
-	if (debug) then
-		print(player.vx)
-	end
 end
 
 __gfx__
