@@ -12,7 +12,6 @@ local PS_DOWN=2
 
 local SND_JUMP=0
 
-local outd=''
 local debug=true
 
 local JUMP_ENERGY=1.5
@@ -131,8 +130,7 @@ function _draw()
 	
 	-- debug
 	if (debug) then
-		print(outd)
-		print(player.vx,6)
+		print(player.vx)
 	end
 end
 
