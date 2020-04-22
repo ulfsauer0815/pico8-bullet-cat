@@ -23,8 +23,9 @@ local objects
 
 function _init()
 	player=create_player(64,50)
-	enemy=create_enemy(10,49)
-	objects={player, enemy}
+	enemy1=create_enemy(10,49)
+	enemy2=create_enemy(80,49)
+	objects={player, enemy1, enemy2}
 end
 
 function _update()
