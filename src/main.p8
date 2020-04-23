@@ -137,11 +137,13 @@ function create_player(x,y)
 end
 
 get_bounds=function(this)
+	local y_off=this.bounds_y_offset or 0
+	local x_off=this.bounds_x_offset or 0
 	return {
-		xs=this.x+(8-this.width)/2,
-		xe=this.x+this.width+(8-this.width)/2-1,
-		ys=this.y,
-		ye=this.y+this.height-1,
+		xs=this.x+(8-this.width)/2 + x_off,
+		xe=this.x+this.width+(8-this.width)/2-1 + x_off,
+		ys=this.y + y_off,
+		ye=this.y+this.height-1 + y_off,
 	}
 end
 
