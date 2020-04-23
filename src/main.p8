@@ -61,8 +61,6 @@ function _update60()
 	end
 	if (player:is_invincible()) then
 		message='get ready'
-	elseif (not player:is_alive()) then
-		message='game over'
 	else
 		message=''
 	end
@@ -74,7 +72,9 @@ function _draw()
 
 	-- debug
 	if (debug) then
-		print(out)
+		if (out) then
+			print(out)
+		end
 	end
 
 	-- map
@@ -211,10 +211,15 @@ function create_player(x,y)
 			end
 			local fraction=this.invincibility_period/8
 			local visibility=max(0,this.hit_timer-(this.invincibility_period-fraction))/fraction
-			local factor_1=dead_time*3
+			local factor_1=min(12, dead_time*14)
 			local factor=1+factor_1
 			local offset=factor_1*8/2
-			sspr(this.sprite.x, this.sprite.y, 8, 8*(1-visibility), this.x-offset, this.y-offset, 8*factor, 8*factor*(1-visibility))
+			local x_distance=63-this.x-8/2
+			local y_distance=63-this.y-8/2
+			local distance_scale=min(1,factor_1/12)
+			local x_distance_inc=x_distance*distance_scale
+			local y_distance_inc=y_distance*distance_scale
+			sspr(this.sprite.x, this.sprite.y, 8, 8*(1-visibility), this.x-offset+x_distance_inc, this.y-offset+y_distance_inc, 8*factor, 8*factor*(1-visibility))
 
 			pal()
 			if (draw_bounds) then
