@@ -151,8 +151,9 @@ function create_enemy(x,y)
 	return {
 		x=x,
 		y=y,
+		bounds_y_offset=1,
 		width=8,
-		height=8,
+		height=7,
 		sprite=32,
 		sprite_flip=true,
 		vx=2,
