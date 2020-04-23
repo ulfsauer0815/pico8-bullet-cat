@@ -9,10 +9,11 @@ local PS_LEFT=3
 local PS_RIGHT=4
 local PS_UP=1
 local PS_DOWN=2
+local FRAME_RATE=30
 
 local SND_JUMP=0
 
-local PLAYER_INIT_POS={x=64, y=50}
+local PLAYER_INIT_POS={x=64, y=31}
 
 local debug=true
 local draw_bounds=false
@@ -32,10 +33,17 @@ function _init()
 	enemy2=create_enemy(80,49)
 	objects={player, enemy1, enemy2}
 	enemies={enemy1, enemy2}
+
+	foreach(objects, function(o) if (o.init) then o:init() end end)
 end
 
 function _update()
-	foreach(objects, function(o) o:update() end)
+	foreach(objects, function(o) if o.update then o:update() end end)
+	for enemy in all(enemies) do
+		if (player:intersects(enemy)) then
+			player:hit()
+		end
+	end
 	if(btnp(5)) then
 		draw_bounds=not draw_bounds
 	end
@@ -45,22 +53,22 @@ end
 function _draw()
 	cls()
 
-	map(0,0,0,0,16,16)
-
-	foreach(objects, function(o) o:draw() end)
-
-	draw_hearts(player.lives)
-
 	-- debug
 	if (debug) then
-		print(player.vx)
-		print(player:intersects(enemy1))
-		for enemy in all(enemies) do
-			if (player:intersects(enemy)) then
-				player.x=PLAYER_INIT_POS.x
-			end
-		end
-		print(enemy1.x..' '..get_bounds(player).xs..' '..get_bounds(player).xe)
+		print(out)
+		print(player.hit_timer)
+	end
+
+	-- map
+	map(0,0,0,0,16,16)
+
+	-- objects
+	foreach(objects, function(o) if (o.draw) then o:draw() end end)
+
+	-- ui
+	draw_hearts(player.lives)
+	if (player:is_invincible()) then
+		print('get ready!', 128/2-12*2,40, 1)
 	end
 end
 
@@ -85,6 +93,19 @@ function create_player(x,y)
 		gravity=0.1,
 
 		lives=5,
+		hit_timer=0,
+		invincibility_period=3*30,
+
+		hit=function(this)
+			if (not this:is_invincible()) then
+				this.lives-=1
+				this.hit_timer=this.invincibility_period
+			end
+		end,
+
+		is_invincible=function(this)
+			return this.hit_timer>0
+		end,
 
 		on_ground=function(this)
 			return this.y >= 56
@@ -125,6 +146,10 @@ function create_player(x,y)
 			end
 		end,
 
+		init=function(this)
+			this.hit_timer=this.invincibility_period
+		end,
+
 		update=function(this)
 			this:controls_update()
 			this.x+=this.vx
@@ -134,10 +159,24 @@ function create_player(x,y)
 			if (this:on_ground()) then
 				this.vy=0
 			end
+
+			if (this:is_invincible()) then
+				this.hit_timer-=1
+			end
 		end,
 
 		draw=function(this)
-			spr(this.sprite,this.x,this.y)
+			print(this.hit_timer..' '..this.invincibility_period)
+			local frequency_correction=2
+			local frequency=(this.hit_timer/this.invincibility_period)*5+frequency_correction
+			local flicker=this.hit_timer / frequency % 1 < 0.5
+			if (this:is_invincible() and not flicker) then
+				pal(9,7)
+			end
+			local fraction=this.invincibility_period/8
+			visibility=max(0,this.hit_timer-(this.invincibility_period-fraction))/fraction
+			spr(this.sprite,this.x,this.y,1,1-visibility)
+			pal()
 			if (draw_bounds) then
 				local bounds=get_bounds(this)
 				rect(bounds.xs, bounds.ys, bounds.xe, bounds.ye, 8)
