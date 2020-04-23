@@ -9,17 +9,17 @@ local PS_LEFT=3
 local PS_RIGHT=4
 local PS_UP=1
 local PS_DOWN=2
-local FRAME_RATE=30
 
 local SND_JUMP=0
 
-local PLAYER_INIT_POS={x=64, y=31}
+local PLAYER_INIT_POS={x=63, y=31}
 
 local debug=true
 local draw_bounds=false
+local update=true
+local message=''
 
-local JUMP_ENERGY=1.5
-
+local out
 local player
 local enemy1
 local enemy2
@@ -37,15 +37,27 @@ function _init()
 	foreach(objects, function(o) if (o.init) then o:init() end end)
 end
 
-function _update()
+local FRAME_RATE=30
+local FRAME_FACTOR=30/FRAME_RATE
+function _update() 
+	if(btnp(5)) then
+		draw_bounds=not draw_bounds
+	end
+	if (not update) then
+		return
+	end
 	foreach(objects, function(o) if o.update then o:update() end end)
 	for enemy in all(enemies) do
 		if (player:intersects(enemy)) then
 			player:hit()
 		end
 	end
-	if(btnp(5)) then
-		draw_bounds=not draw_bounds
+	if (player:is_invincible()) then
+		message='get ready'
+	elseif (player.lives <= 0) then
+		message='game over'
+	else
+		message=''
 	end
 end
 
@@ -56,7 +68,6 @@ function _draw()
 	-- debug
 	if (debug) then
 		print(out)
-		print(player.hit_timer)
 	end
 
 	-- map
@@ -67,8 +78,8 @@ function _draw()
 
 	-- ui
 	draw_hearts(player.lives)
-	if (player:is_invincible()) then
-		print('get ready!', 128/2-12*2,40, 1)
+	if (message) then
+		print(message, 128/2-#message/2*4,40, 1)
 	end
 end
 
@@ -86,20 +97,25 @@ function create_player(x,y)
 		width=4,
 		height=8,
 		sprite=PS_UP,
-		jump_energy=0,
+		jump_energy=1.5,
 		move_energy=0.4,
 		vy=0,
 		vx=0,
+		accel_max=2,
 		gravity=0.1,
 
-		lives=5,
+		lives=3,
 		hit_timer=0,
 		invincibility_period=3*30,
 
 		hit=function(this)
 			if (not this:is_invincible()) then
 				this.lives-=1
-				this.hit_timer=this.invincibility_period
+				if (this.lives <= 0) then
+					update=false
+				else
+					this.hit_timer=this.invincibility_period
+				end
 			end
 		end,
 
@@ -129,19 +145,19 @@ function create_player(x,y)
 			end
 			if(btn(0)) then
 				this.sprite=PS_LEFT
-				this.vx=max(-2, this.vx-this.move_energy)
+				this.vx=max(-this.accel_max, this.vx-this.move_energy*FRAME_FACTOR)
 			elseif(btn(1)) then
 				this.sprite=PS_RIGHT
-				this.vx=min(2, this.vx+this.move_energy)
+				this.vx=min(this.accel_max, this.vx+this.move_energy*FRAME_FACTOR)
 			else
 				if (this.vx <= this.move_energy and this.vx >= -this.move_energy) then
 					this.vx=0
 				else
-					this.vx=this.vx-sgn(this.vx)*this.move_energy
+					this.vx=this.vx-sgn(this.vx)*this.move_energy*FRAME_FACTOR
 				end
 			end
 			if(btnp(4) and this:on_ground()) then
-				this.vy=-JUMP_ENERGY
+				this.vy=-this.jump_energy
 				sfx(SND_JUMP)
 			end
 		end,
@@ -151,22 +167,25 @@ function create_player(x,y)
 		end,
 
 		update=function(this)
+			if (this.lives <= 0) then
+				update=false
+			end
 			this:controls_update()
-			this.x+=this.vx
-			this.y+=this.vy
-			this.vy=this.vy+this.gravity
+			this.x+=this.vx*FRAME_FACTOR
+			this.y+=this.vy*FRAME_FACTOR
+			this.vy=this.vy+this.gravity*FRAME_FACTOR
 
 			if (this:on_ground()) then
 				this.vy=0
+				this.y=56
 			end
 
 			if (this:is_invincible()) then
-				this.hit_timer-=1
+				this.hit_timer-=1*FRAME_FACTOR
 			end
 		end,
 
 		draw=function(this)
-			print(this.hit_timer..' '..this.invincibility_period)
 			local frequency_correction=2
 			local frequency=(this.hit_timer/this.invincibility_period)*5+frequency_correction
 			local flicker=this.hit_timer / frequency % 1 < 0.5
@@ -224,9 +243,9 @@ function create_enemy(x,y)
 			if (this:on_ground()) then
 				this.vy=0
 			end
-			this.x+=this.vx
-			this.y+=this.vy
-			this.vy=this.vy+this.gravity
+			this.x+=this.vx*FRAME_FACTOR
+			this.y+=this.vy*FRAME_FACTOR
+			this.vy=this.vy+this.gravity*FRAME_FACTOR
 			this.sprite_flip=this.vx>=0
 		end,
 
