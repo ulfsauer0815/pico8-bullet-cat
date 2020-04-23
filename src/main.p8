@@ -82,7 +82,7 @@ function create_player(x,y)
 
 		intersects=function(this, o)
 			local bounds=get_bounds(this)
-			local o_bounds={xs=o.x, xe=o.x+8, ys=o.y, ye=o.y+8}
+			local o_bounds=get_bounds(o)
 			local x_intersects=bounds.xe > o_bounds.xs and bounds.xs <= o_bounds.xe
 			local y_intersects=bounds.ye > o_bounds.ys and bounds.ys <= o_bounds.ye
 
