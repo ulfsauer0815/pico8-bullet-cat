@@ -39,7 +39,7 @@ end
 
 local FRAME_RATE=60
 local FRAME_FACTOR=30/FRAME_RATE
-function _update60() 
+function _update60()
 	if(btnp(5)) then
 		draw_bounds=not draw_bounds
 	end
