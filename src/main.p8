@@ -5,19 +5,20 @@ __lua__
 -- by Ulf Sauer
 
 
-local PS_LEFT=3
-local PS_RIGHT=4
-local PS_UP=1
-local PS_DOWN=2
+local PS_LEFT={i=3,x=24,y=0}
+local PS_RIGHT={i=4,x=32,y=0}
+local PS_UP={i=1,x=8,y=0}
+local PS_DOWN={i=2,x=16,y=0}
 
 local SND_JUMP=0
-
-local PLAYER_INIT_POS={x=63, y=31}
 
 local debug=true
 local draw_bounds=false
 local update=true
 local message=''
+local draw_map=true
+local draw_enemies=true
+local dead_time=0
 
 local out
 local player
@@ -28,7 +29,7 @@ local enemies
 
 
 function _init()
-	player=create_player(PLAYER_INIT_POS.x,PLAYER_INIT_POS.y)
+	player=create_player(63,31)
 	enemy1=create_enemy(10,49)
 	enemy2=create_enemy(80,49)
 	objects={player, enemy1, enemy2}
@@ -37,12 +38,18 @@ function _init()
 	foreach(objects, function(o) if (o.init) then o:init() end end)
 end
 
+
 local FRAME_RATE=60
 local FRAME_FACTOR=30/FRAME_RATE
 function _update60()
 	if(btnp(5)) then
 		draw_bounds=not draw_bounds
 	end
+
+	if (not player:is_alive()) then
+		dead_time+=1/FRAME_RATE
+	end
+
 	if (not update) then
 		return
 	end
@@ -54,7 +61,7 @@ function _update60()
 	end
 	if (player:is_invincible()) then
 		message='get ready'
-	elseif (player.lives <= 0) then
+	elseif (not player:is_alive()) then
 		message='game over'
 	else
 		message=''
@@ -71,10 +78,12 @@ function _draw()
 	end
 
 	-- map
-	map(0,0,0,0,16,16)
+	if (draw_map) then
+		map(0,0,0,0,16,16)
+	end
 
 	-- objects
-	foreach(objects, function(o) if (o.draw) then o:draw() end end)
+	foreach(objects, function(o) if (o.draw and (draw_enemies or not o.is_enemy)) then o:draw() end end)
 
 	-- ui
 	draw_hearts(player.lives)
@@ -82,6 +91,7 @@ function _draw()
 		print(message, 128/2-#message/2*4,40, 1)
 	end
 end
+
 
 function draw_hearts(n)
 	for y=0,(n-1)*8,8 do
@@ -104,19 +114,21 @@ function create_player(x,y)
 		accel_max=2,
 		gravity=0.1,
 
-		lives=3,
+		lives=1,
 		hit_timer=0,
 		invincibility_period=3*30,
 
 		hit=function(this)
 			if (not this:is_invincible()) then
 				this.lives-=1
-				if (this.lives <= 0) then
-					update=false
-				else
+				if (this:is_alive()) then
 					this.hit_timer=this.invincibility_period
 				end
 			end
+		end,
+
+		is_alive=function(this)
+			return this.lives > 0
 		end,
 
 		is_invincible=function(this)
@@ -167,7 +179,9 @@ function create_player(x,y)
 		end,
 
 		update=function(this)
-			if (this.lives <= 0) then
+			if (not this:is_alive()) then
+				draw_map=false
+				draw_enemies=false
 				update=false
 			end
 			this:controls_update()
@@ -183,6 +197,9 @@ function create_player(x,y)
 			if (this:is_invincible()) then
 				this.hit_timer-=1*FRAME_FACTOR
 			end
+			if (not this:is_alive()) then
+				this.sprite=PS_UP
+			end
 		end,
 
 		draw=function(this)
@@ -193,8 +210,12 @@ function create_player(x,y)
 				pal(9,7)
 			end
 			local fraction=this.invincibility_period/8
-			visibility=max(0,this.hit_timer-(this.invincibility_period-fraction))/fraction
-			spr(this.sprite,this.x,this.y,1,1-visibility)
+			local visibility=max(0,this.hit_timer-(this.invincibility_period-fraction))/fraction
+			local factor_1=dead_time*3
+			local factor=1+factor_1
+			local offset=factor_1*8/2
+			sspr(this.sprite.x, this.sprite.y, 8, 8*(1-visibility), this.x-offset, this.y-offset, 8*factor, 8*factor*(1-visibility))
+
 			pal()
 			if (draw_bounds) then
 				local bounds=get_bounds(this)
@@ -203,6 +224,7 @@ function create_player(x,y)
 		end,
 	}
 end
+
 
 get_bounds=function(this)
 	local y_off=this.bounds_y_offset or 0
@@ -215,14 +237,16 @@ get_bounds=function(this)
 	}
 end
 
+
 function create_enemy(x,y)
 	return {
+		is_enemy=true,
 		x=x,
 		y=y,
 		bounds_y_offset=1,
 		width=8,
 		height=7,
-		sprite=32,
+		sprite={i=32,x=0,y=16},
 		sprite_flip=true,
 		vx=2,
 		vy=0,
@@ -250,7 +274,7 @@ function create_enemy(x,y)
 		end,
 
 		draw=function(this)
-			spr(this.sprite,this.x,this.y,1,1,this.sprite_flip)
+			spr(this.sprite.i,this.x,this.y,1,1,this.sprite_flip)
 			if (draw_bounds) then
 				local bounds=get_bounds(this)
 				rect(bounds.xs, bounds.ys, bounds.xe, bounds.ye, 8)
