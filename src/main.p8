@@ -37,9 +37,9 @@ function _init()
 	foreach(objects, function(o) if (o.init) then o:init() end end)
 end
 
-local FRAME_RATE=30
+local FRAME_RATE=60
 local FRAME_FACTOR=30/FRAME_RATE
-function _update() 
+function _update60() 
 	if(btnp(5)) then
 		draw_bounds=not draw_bounds
 	end
