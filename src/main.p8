@@ -49,6 +49,8 @@ function _draw()
 
 	foreach(objects, function(o) o:draw() end)
 
+	draw_hearts(player.lives)
+
 	-- debug
 	if (debug) then
 		print(player.vx)
@@ -59,6 +61,12 @@ function _draw()
 			end
 		end
 		print(enemy1.x..' '..get_bounds(player).xs..' '..get_bounds(player).xe)
+	end
+end
+
+function draw_hearts(n)
+	for y=0,(n-1)*8,8 do
+		spr(48,y,25)
 	end
 end
 
@@ -75,6 +83,8 @@ function create_player(x,y)
 		vy=0,
 		vx=0,
 		gravity=0.1,
+
+		lives=5,
 
 		on_ground=function(this)
 			return this.y >= 56
