@@ -35,31 +35,31 @@ function _init()
 	objects={player, enemy1, enemy2}
 	enemies={enemy1, enemy2}
 
-	foreach(objects, function(o) if (o.init) then o:init() end end)
+	foreach(objects, function(o) if o.init then o:init() end end)
 end
 
 
 local FRAME_RATE=60
 local FRAME_FACTOR=30/FRAME_RATE
 function _update60()
-	if(btnp(5)) then
+	if btnp(5) then
 		draw_bounds=not draw_bounds
 	end
 
-	if (not player:is_alive()) then
+	if not player:is_alive() then
 		dead_time+=1/FRAME_RATE
 	end
 
-	if (not update) then
+	if not update then
 		return
 	end
 	foreach(objects, function(o) if o.update then o:update() end end)
 	for enemy in all(enemies) do
-		if (player:intersects(enemy)) then
+		if player:intersects(enemy) then
 			player:hit()
 		end
 	end
-	if (player:is_invincible()) then
+	if player:is_invincible() then
 		message='get ready'
 	else
 		message=''
@@ -71,23 +71,23 @@ function _draw()
 	cls()
 
 	-- debug
-	if (debug) then
-		if (out) then
+	if debug then
+		if out then
 			print(out)
 		end
 	end
 
 	-- map
-	if (draw_map) then
+	if draw_map then
 		map(0,0,0,0,16,16)
 	end
 
 	-- objects
-	foreach(objects, function(o) if (o.draw and (draw_enemies or not o.is_enemy)) then o:draw() end end)
+	foreach(objects, function(o) if o.draw and (draw_enemies or not o.is_enemy) then o:draw() end end)
 
 	-- ui
 	draw_hearts(player.lives)
-	if (message) then
+	if message then
 		print(message, 128/2-#message/2*4,40, 1)
 	end
 end
@@ -119,9 +119,9 @@ function create_player(x,y)
 		invincibility_period=3*30,
 
 		hit=function(this)
-			if (not this:is_invincible()) then
+			if not this:is_invincible() then
 				this.lives-=1
-				if (this:is_alive()) then
+				if this:is_alive() then
 					this.hit_timer=this.invincibility_period
 				end
 			end
@@ -149,26 +149,26 @@ function create_player(x,y)
 		end,
 
 		controls_update=function(this)
-			if(btn(2)) then
+			if btn(2) then
 				this.sprite=PS_DOWN
 			end
-			if(btn(3)) then
+			if btn(3) then
 				this.sprite=PS_UP
 			end
-			if(btn(0)) then
+			if btn(0) then
 				this.sprite=PS_LEFT
 				this.vx=max(-this.accel_max, this.vx-this.move_energy*FRAME_FACTOR)
-			elseif(btn(1)) then
+			elseif btn(1) then
 				this.sprite=PS_RIGHT
 				this.vx=min(this.accel_max, this.vx+this.move_energy*FRAME_FACTOR)
 			else
-				if (this.vx <= this.move_energy and this.vx >= -this.move_energy) then
+				if this.vx <= this.move_energy and this.vx >= -this.move_energy then
 					this.vx=0
 				else
 					this.vx=this.vx-sgn(this.vx)*this.move_energy*FRAME_FACTOR
 				end
 			end
-			if(btnp(4) and this:on_ground()) then
+			if btnp(4) and this:on_ground() then
 				this.vy=-this.jump_energy
 				sfx(SND_JUMP)
 			end
@@ -179,7 +179,7 @@ function create_player(x,y)
 		end,
 
 		update=function(this)
-			if (not this:is_alive()) then
+			if not this:is_alive() then
 				draw_map=false
 				draw_enemies=false
 				update=false
@@ -189,15 +189,15 @@ function create_player(x,y)
 			this.y+=this.vy*FRAME_FACTOR
 			this.vy=this.vy+this.gravity*FRAME_FACTOR
 
-			if (this:on_ground()) then
+			if this:on_ground() then
 				this.vy=0
 				this.y=56
 			end
 
-			if (this:is_invincible()) then
+			if this:is_invincible() then
 				this.hit_timer-=1*FRAME_FACTOR
 			end
-			if (not this:is_alive()) then
+			if not this:is_alive() then
 				this.sprite=PS_UP
 			end
 		end,
@@ -206,7 +206,7 @@ function create_player(x,y)
 			local frequency_correction=2
 			local frequency=(this.hit_timer/this.invincibility_period)*5+frequency_correction
 			local flicker=this.hit_timer / frequency % 1 < 0.5
-			if (this:is_invincible() and not flicker) then
+			if this:is_invincible() and not flicker then
 				pal(9,7)
 			end
 			local fraction=this.invincibility_period/8
@@ -222,7 +222,7 @@ function create_player(x,y)
 			sspr(this.sprite.x, this.sprite.y, 8, 8*(1-visibility), this.x-offset+x_distance_inc, this.y-offset+y_distance_inc, 8*factor, 8*factor*(1-visibility))
 
 			pal()
-			if (draw_bounds) then
+			if draw_bounds then
 				local bounds=get_bounds(this)
 				rect(bounds.xs, bounds.ys, bounds.xe, bounds.ye, 8)
 			end
@@ -262,14 +262,14 @@ function create_enemy(x,y)
 		end,
 
 		update=function(this)
-			if (this.x+this.width/2 >= 128) then
+			if this.x+this.width/2 >= 128 then
 				this.vx = this.vx*-1
 			end
-			if (this.x <= 0) then
+			if this.x <= 0 then
 				this.vx = this.vx*-1
 			end
 
-			if (this:on_ground()) then
+			if this:on_ground() then
 				this.vy=0
 			end
 			this.x+=this.vx*FRAME_FACTOR
@@ -280,7 +280,7 @@ function create_enemy(x,y)
 
 		draw=function(this)
 			spr(this.sprite.i,this.x,this.y,1,1,this.sprite_flip)
-			if (draw_bounds) then
+			if draw_bounds then
 				local bounds=get_bounds(this)
 				rect(bounds.xs, bounds.ys, bounds.xe, bounds.ye, 8)
 			end
