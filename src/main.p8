@@ -5,10 +5,10 @@ __lua__
 -- by Ulf Sauer
 
 
-local PS_LEFT={i=3,x=24,y=0}
-local PS_RIGHT={i=4,x=32,y=0}
-local PS_UP={i=1,x=8,y=0}
-local PS_DOWN={i=2,x=16,y=0}
+local PS_LEFT   = {i=3  , x=24 , y=0  }
+local PS_RIGHT  = {i=4  , x=32 , y=0  }
+local PS_UP     = {i=1  , x=8  , y=0  }
+local PS_DOWN   = {i=2  , x=16 , y=0  }
 
 local SND_JUMP=0
 
