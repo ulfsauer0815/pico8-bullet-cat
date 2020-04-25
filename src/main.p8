@@ -28,10 +28,24 @@ local objects
 local enemies
 
 
+local Object={}
+
+function Object:new(x,y)
+	o = {}
+	setmetatable(o, self)
+	self.__index = self
+  return o
+end
+
+local Player=Object:new()
+local Enemy=Object:new()
+
+-- global
+
 function _init()
-	player=create_player(63,31)
-	enemy1=create_enemy(10,49)
-	enemy2=create_enemy(80,49)
+	player=Player:new(63,31)
+	enemy1=Enemy:new(10,49)
+	enemy2=Enemy:new(80,49)
 	objects={player, enemy1, enemy2}
 	enemies={enemy1, enemy2}
 
@@ -99,9 +113,28 @@ function draw_hearts(n)
 	end
 end
 
+-- Object
 
-function create_player(x,y)
+function Object:get_bounds()
+	local y_off=self.bounds_y_offset or 0
+	local x_off=self.bounds_x_offset or 0
 	return {
+		xs=self.x+(8-self.width)/2 + x_off,
+		xe=self.x+self.width+(8-self.width)/2-1 + x_off,
+		ys=self.y + y_off,
+		ye=self.y+self.height-1 + y_off,
+	}
+end
+
+
+function Object:on_ground()
+	return self.y >= 56
+end
+
+-- Player
+
+function Player:new(x, y)
+	o = {
 		x=x,
 		y=y,
 		width=4,
@@ -117,134 +150,131 @@ function create_player(x,y)
 		lives=1,
 		hit_timer=0,
 		invincibility_period=3*30,
-
-		hit=function(this)
-			if not this:is_invincible() then
-				this.lives-=1
-				if this:is_alive() then
-					this.hit_timer=this.invincibility_period
-				end
-			end
-		end,
-
-		is_alive=function(this)
-			return this.lives > 0
-		end,
-
-		is_invincible=function(this)
-			return this.hit_timer>0
-		end,
-
-		on_ground=function(this)
-			return this.y >= 56
-		end,
-
-		intersects=function(this, o)
-			local bounds=get_bounds(this)
-			local o_bounds=get_bounds(o)
-			local x_intersects=bounds.xe > o_bounds.xs and bounds.xs <= o_bounds.xe
-			local y_intersects=bounds.ye > o_bounds.ys and bounds.ys <= o_bounds.ye
-
-			return x_intersects and y_intersects
-		end,
-
-		controls_update=function(this)
-			if btn(2) then
-				this.sprite=PS_DOWN
-			end
-			if btn(3) then
-				this.sprite=PS_UP
-			end
-			if btn(0) then
-				this.sprite=PS_LEFT
-				this.vx=max(-this.accel_max, this.vx-this.move_energy*FRAME_FACTOR)
-			elseif btn(1) then
-				this.sprite=PS_RIGHT
-				this.vx=min(this.accel_max, this.vx+this.move_energy*FRAME_FACTOR)
-			else
-				if this.vx <= this.move_energy and this.vx >= -this.move_energy then
-					this.vx=0
-				else
-					this.vx=this.vx-sgn(this.vx)*this.move_energy*FRAME_FACTOR
-				end
-			end
-			if btnp(4) and this:on_ground() then
-				this.vy=-this.jump_energy
-				sfx(SND_JUMP)
-			end
-		end,
-
-		init=function(this)
-			this.hit_timer=this.invincibility_period
-		end,
-
-		update=function(this)
-			if not this:is_alive() then
-				draw_map=false
-				draw_enemies=false
-				update=false
-			end
-			this:controls_update()
-			this.x+=this.vx*FRAME_FACTOR
-			this.y+=this.vy*FRAME_FACTOR
-			this.vy=this.vy+this.gravity*FRAME_FACTOR
-
-			if this:on_ground() then
-				this.vy=0
-				this.y=56
-			end
-
-			if this:is_invincible() then
-				this.hit_timer-=1*FRAME_FACTOR
-			end
-			if not this:is_alive() then
-				this.sprite=PS_UP
-			end
-		end,
-
-		draw=function(this)
-			local frequency_correction=2
-			local frequency=(this.hit_timer/this.invincibility_period)*5+frequency_correction
-			local flicker=this.hit_timer / frequency % 1 < 0.5
-			if this:is_invincible() and not flicker then
-				pal(9,7)
-			end
-			local fraction=this.invincibility_period/8
-			local visibility=max(0,this.hit_timer-(this.invincibility_period-fraction))/fraction
-			local factor_1=min(12, dead_time*14)
-			local factor=1+factor_1
-			local offset=factor_1*8/2
-			local x_distance=63-this.x-8/2
-			local y_distance=63-this.y-8/2
-			local distance_scale=min(1,factor_1/12)
-			local x_distance_inc=x_distance*distance_scale
-			local y_distance_inc=y_distance*distance_scale
-			sspr(this.sprite.x, this.sprite.y, 8, 8*(1-visibility), this.x-offset+x_distance_inc, this.y-offset+y_distance_inc, 8*factor, 8*factor*(1-visibility))
-
-			pal()
-			if draw_bounds then
-				local bounds=get_bounds(this)
-				rect(bounds.xs, bounds.ys, bounds.xe, bounds.ye, 8)
-			end
-		end,
 	}
+	setmetatable(o, self)
+	self.__index = self
+  return o
 end
 
 
-get_bounds=function(this)
-	local y_off=this.bounds_y_offset or 0
-	local x_off=this.bounds_x_offset or 0
-	return {
-		xs=this.x+(8-this.width)/2 + x_off,
-		xe=this.x+this.width+(8-this.width)/2-1 + x_off,
-		ys=this.y + y_off,
-		ye=this.y+this.height-1 + y_off,
-	}
+function Player:hit()
+	if not self:is_invincible() then
+		self.lives-=1
+		if self:is_alive() then
+			self.hit_timer=self.invincibility_period
+		end
+	end
 end
 
 
-function create_enemy(x,y)
-	return {
+function Player:is_alive()
+	return self.lives > 0
+end
+
+
+function Player:is_invincible()
+	return self.hit_timer>0
+end
+
+
+function Player:intersects(o)
+	local bounds=self:get_bounds()
+	local o_bounds=o:get_bounds()
+	local x_intersects=bounds.xe > o_bounds.xs and bounds.xs <= o_bounds.xe
+	local y_intersects=bounds.ye > o_bounds.ys and bounds.ys <= o_bounds.ye
+
+	return x_intersects and y_intersects
+end
+
+
+function Player:controls_update()
+	if btn(2) then
+		self.sprite=PS_DOWN
+	end
+	if btn(3) then
+		self.sprite=PS_UP
+	end
+	if btn(0) then
+		self.sprite=PS_LEFT
+		self.vx=max(-self.accel_max, self.vx-self.move_energy*FRAME_FACTOR)
+	elseif btn(1) then
+		self.sprite=PS_RIGHT
+		self.vx=min(self.accel_max, self.vx+self.move_energy*FRAME_FACTOR)
+	else
+		if self.vx <= self.move_energy and self.vx >= -self.move_energy then
+			self.vx=0
+		else
+			self.vx=self.vx-sgn(self.vx)*self.move_energy*FRAME_FACTOR
+		end
+	end
+	if btnp(4) and self:on_ground() then
+		self.vy=-self.jump_energy
+		sfx(SND_JUMP)
+	end
+end
+
+
+function Player:init()
+	self.hit_timer=self.invincibility_period
+end
+
+
+function Player:update()
+	if not self:is_alive() then
+		draw_map=false
+		draw_enemies=false
+		update=false
+	end
+	self:controls_update()
+	self.x+=self.vx*FRAME_FACTOR
+	self.y+=self.vy*FRAME_FACTOR
+	self.vy=self.vy+self.gravity*FRAME_FACTOR
+
+	if self:on_ground() then
+		self.vy=0
+		self.y=56
+	end
+
+	if self:is_invincible() then
+		self.hit_timer-=1*FRAME_FACTOR
+	end
+	if not self:is_alive() then
+		self.sprite=PS_UP
+	end
+end
+
+
+function Player:draw()
+	local frequency_correction=2
+	local frequency=(self.hit_timer/self.invincibility_period)*5+frequency_correction
+	local flicker=self.hit_timer / frequency % 1 < 0.5
+	if self:is_invincible() and not flicker then
+		pal(9,7)
+	end
+	local fraction=self.invincibility_period/8
+	local visibility=max(0,self.hit_timer-(self.invincibility_period-fraction))/fraction
+	local factor_1=min(12, dead_time*14)
+	local factor=1+factor_1
+	local offset=factor_1*8/2
+	local x_distance=63-self.x-8/2
+	local y_distance=63-self.y-8/2
+	local distance_scale=min(1,factor_1/12)
+	local x_distance_inc=x_distance*distance_scale
+	local y_distance_inc=y_distance*distance_scale
+	sspr(self.sprite.x, self.sprite.y, 8, 8*(1-visibility), self.x-offset+x_distance_inc, self.y-offset+y_distance_inc, 8*factor, 8*factor*(1-visibility))
+
+	pal()
+	if draw_bounds then
+		local bounds=self:get_bounds()
+		rect(bounds.xs, bounds.ys, bounds.xe, bounds.ye, 8)
+	end
+end
+
+
+-- Enemy
+
+function Enemy:new(x,y)
+	o = {
 		is_enemy=true,
 		x=x,
 		y=y,
@@ -256,36 +286,38 @@ function create_enemy(x,y)
 		vx=2,
 		vy=0,
 		gravity=0.2,
-
-		on_ground=function(this)
-			return this.y >= 56
-		end,
-
-		update=function(this)
-			if this.x+this.width/2 >= 128 then
-				this.vx = this.vx*-1
-			end
-			if this.x <= 0 then
-				this.vx = this.vx*-1
-			end
-
-			if this:on_ground() then
-				this.vy=0
-			end
-			this.x+=this.vx*FRAME_FACTOR
-			this.y+=this.vy*FRAME_FACTOR
-			this.vy=this.vy+this.gravity*FRAME_FACTOR
-			this.sprite_flip=this.vx>=0
-		end,
-
-		draw=function(this)
-			spr(this.sprite.i,this.x,this.y,1,1,this.sprite_flip)
-			if draw_bounds then
-				local bounds=get_bounds(this)
-				rect(bounds.xs, bounds.ys, bounds.xe, bounds.ye, 8)
-			end
-		end
 	}
+	setmetatable(o, self)
+	self.__index = self
+  return o
+end
+
+
+function Enemy:update()
+	if self.x+self.width/2 >= 128 then
+		self.vx = self.vx*-1
+	end
+	if self.x <= 0 then
+		self.vx = self.vx*-1
+	end
+
+	if self:on_ground() then
+		self.vy=0
+		self.y=56
+	end
+	self.x+=self.vx*FRAME_FACTOR
+	self.y+=self.vy*FRAME_FACTOR
+	self.vy=self.vy+self.gravity*FRAME_FACTOR
+	self.sprite_flip=self.vx>=0
+end
+
+
+function Enemy:draw()
+	spr(self.sprite.i,self.x,self.y,1,1,self.sprite_flip)
+	if draw_bounds then
+		local bounds=self:get_bounds()
+		rect(bounds.xs, bounds.ys, bounds.xe, bounds.ye, 8)
+	end
 end
 
 __gfx__
