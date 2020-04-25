@@ -97,7 +97,7 @@ function _draw()
 	end
 
 	-- objects
-	foreach(objects, function(o) if o.draw and (draw_enemies or not o.is_enemy) then o:draw() end end)
+	foreach(objects, function(o) if o.draw then o:draw() end end)
 
 	-- ui
 	draw_hearts(player.lives)
@@ -313,6 +313,9 @@ end
 
 
 function Enemy:draw()
+	if not draw_enemies then
+		return
+	end
 	spr(self.sprite.i,self.x,self.y,1,1,self.sprite_flip)
 	if draw_bounds then
 		local bounds=self:get_bounds()
