@@ -31,6 +31,7 @@ local EN_LEFT_ALL=     {EN_RIGHT_MV, EN_RIGHT_MV2, EN_RIGHT_MV3, EN_RIGHT_MV4}
 
 local PS_UP=           {i=1 ,x=8 ,y=0}
 local PS_DOWN=         {i=2 ,x=16,y=0}
+local PI_STILL, PI_UP, PI_DOWN, PI_LEFT, PI_RIGHT = 0, 1, 2, 3, 4
 
 local SND_JUMP=0
 
@@ -169,7 +170,7 @@ function Player:new(x, y)
 		y=y,
 		width=4,
 		height=8,
-		sprite=PS_UP,
+		intent=PI_STILL,
 		jump_energy=1.5,
 		move_energy=0.4,
 		vy=0,
@@ -217,7 +218,7 @@ function Player:intersects(o)
 end
 
 
-function get_sprite(sprite_list, mod)
+function cycle_sprite(sprite_list, mod)
 	local sprite_list=sprite_list or {{i=1,x=0,y=0}}
 	local sprites=#sprite_list
 	local mod=mod or 18
@@ -228,18 +229,19 @@ end
 
 function Player:controls_update()
 	if btn(2) then
-		self.sprite=PS_DOWN
+		self.intent=PI_DOWN
 	end
 	if btn(3) then
-		self.sprite=PS_UP
+		self.intent=PI_UP
 	end
 	if btn(0) then
-		self.sprite=get_sprite(PS_LEFT_ALL)
+		self.intent=PI_LEFT
 		self.vx=max(-self.accel_max, self.vx-self.move_energy*FRAME_FACTOR)
 	elseif btn(1) then
-		self.sprite=get_sprite(PS_RIGHT_ALL)
+		self.intent=PI_RIGHT
 		self.vx=min(self.accel_max, self.vx+self.move_energy*FRAME_FACTOR)
 	else
+		self.intent=PI_STILL
 		if self.vx <= self.move_energy and self.vx >= -self.move_energy then
 			self.vx=0
 		else
@@ -277,13 +279,6 @@ function Player:update()
 	if self:is_invincible() then
 		self.hit_timer-=1*FRAME_FACTOR
 	end
-	if not self:is_alive() then
-		self.sprite=PS_UP
-	end
-
-	if not self:is_moving() then
-		self.sprite=PS_UP
-	end
 end
 
 
@@ -294,6 +289,7 @@ function Player:draw()
 	if self:is_invincible() and not flicker then
 		pal(9,7)
 	end
+	local sprite = self:get_sprite()
 	local fraction=self.invincibility_period/8
 	local visibility=max(0,self.hit_timer-(self.invincibility_period-fraction))/fraction
 	local factor_1=min(12, dead_time*14)
@@ -304,12 +300,31 @@ function Player:draw()
 	local distance_scale=min(1,factor_1/12)
 	local x_distance_inc=x_distance*distance_scale
 	local y_distance_inc=y_distance*distance_scale
-	sspr(self.sprite.x, self.sprite.y, 8, 8*(1-visibility), self.x-offset+x_distance_inc, self.y-offset+y_distance_inc, 8*factor, 8*factor*(1-visibility))
+	sspr(sprite.x, sprite.y, 8, 8*(1-visibility), self.x-offset+x_distance_inc, self.y-offset+y_distance_inc, 8*factor, 8*factor*(1-visibility))
 
 	pal()
 	if draw_bounds then
 		local bounds=self:get_bounds()
 		rect(bounds.xs, bounds.ys, bounds.xe, bounds.ye, 8)
+	end
+end
+
+function Player:get_sprite()
+	if not self:is_alive() then
+		return PS_UP
+	elseif self.intent == PI_UP then
+		return PS_UP
+	elseif self.intent == PI_DOWN then
+		return PS_DOWN
+	elseif self.intent == PI_RIGHT or
+		  (self.intent == PI_STILL and self.vx > 0.2)
+	then
+		return cycle_sprite(PS_RIGHT_ALL)
+	elseif self.intent == PI_LEFT or
+		  (self.intent == PI_STILL and self.vx < -0.2) then
+		return cycle_sprite(PS_LEFT_ALL)
+	elseif self.intent == PI_STILL then
+		return PS_UP
 	end
 end
 
@@ -351,7 +366,7 @@ function Enemy:update()
 	self.y+=self.vy*FRAME_FACTOR
 	self.vy=self.vy+self.gravity*FRAME_FACTOR
 	self.sprite_flip=self.vx<0
-	self.sprite=get_sprite(EN_LEFT_ALL,16)
+	self.sprite=cycle_sprite(EN_LEFT_ALL,16)
 end
 
 
